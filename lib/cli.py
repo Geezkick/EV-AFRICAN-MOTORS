@@ -35,43 +35,63 @@ def create_dealership(name, location):
 @click.option('--id', prompt='Dealership ID', type=int, help='ID of the dealership to delete')
 def delete_dealership(id):
     session = setup_database()
-    if Dealership.delete(session, id):
-        click.echo(f"Deleted dealership with ID {id}")
-    else:
-        click.echo(f"Error: Dealership with ID {id} not found")
-    session.close()
+    try:
+        if Dealership.delete(session, id):
+            click.echo(f"Deleted dealership with ID {id}")
+        else:
+            click.echo(f"Error: Dealership with ID {id} not found")
+    except Exception as e:
+        click.echo(f"Error deleting dealership: {e}")
+    finally:
+        session.close()
 
 @cli.command()
 def list_dealerships():
     session = setup_database()
-    dealerships = Dealership.get_all(session)
-    for d in dealerships:
-        click.echo(f"ID: {d.id}, Name: {d.name}, Location: {d.location}")
-    session.close()
+    try:
+        dealerships = Dealership.get_all(session)
+        if not dealerships:
+            click.echo("No dealerships found.")
+        for d in dealerships:
+            click.echo(f"ID: {d.id}, Name: {d.name}, Location: {d.location}")
+    except Exception as e:
+        click.echo(f"Error listing dealerships: {e}")
+    finally:
+        session.close()
 
 @cli.command()
 @click.option('--id', prompt='Dealership ID', type=int, help='ID of the dealership to find')
 def find_dealership(id):
     session = setup_database()
-    dealership = Dealership.find_by_id(session, id)
-    if dealership:
-        click.echo(f"ID: {dealership.id}, Name: {dealership.name}, Location: {dealership.location}")
-    else:
-        click.echo(f"Error: Dealership with ID {id} not found")
-    session.close()
+    try:
+        dealership = Dealership.find_by_id(session, id)
+        if dealership:
+            click.echo(f"ID: {dealership.id}, Name: {dealership.name}, Location: {dealership.location}")
+        else:
+            click.echo(f"Error: Dealership with ID {id} not found")
+    except Exception as e:
+        click.echo(f"Error finding dealership: {e}")
+    finally:
+        session.close()
 
 @cli.command()
 @click.option('--id', prompt='Dealership ID', type=int, help='ID of the dealership')
 def list_dealership_vehicles(id):
     session = setup_database()
-    dealership = Dealership.find_by_id(session, id)
-    if dealership:
-        click.echo(f"Vehicles for {dealership.name}:")
-        for vehicle in dealership.vehicles:
-            click.echo(f"  ID: {vehicle.id}, Model: {vehicle.model}, Price: ${vehicle.price}")
-    else:
-        click.echo(f"Error: Dealership with ID {id} not found")
-    session.close()
+    try:
+        dealership = Dealership.find_by_id(session, id)
+        if dealership:
+            click.echo(f"Vehicles for {dealership.name}:")
+            if not dealership.vehicles:
+                click.echo("  No vehicles found.")
+            for vehicle in dealership.vehicles:
+                click.echo(f"  ID: {vehicle.id}, Model: {vehicle.model}, Price: ${vehicle.price}")
+        else:
+            click.echo(f"Error: Dealership with ID {id} not found")
+    except Exception as e:
+        click.echo(f"Error listing vehicles: {e}")
+    finally:
+        session.close()
 
 @cli.command()
 @click.option('--model', prompt='Vehicle model', help='Model of the vehicle')
@@ -98,30 +118,45 @@ def create_vehicle(model, price, dealership_id, customer_id):
 @click.option('--id', prompt='Vehicle ID', type=int, help='ID of the vehicle to delete')
 def delete_vehicle(id):
     session = setup_database()
-    if Vehicle.delete(session, id):
-        click.echo(f"Deleted vehicle with ID {id}")
-    else:
-        click.echo(f"Error: Vehicle with ID {id} not found")
-    session.close()
+    try:
+        if Vehicle.delete(session, id):
+            click.echo(f"Deleted vehicle with ID {id}")
+        else:
+            click.echo(f"Error: Vehicle with ID {id} not found")
+    except Exception as e:
+        click.echo(f"Error deleting vehicle: {e}")
+    finally:
+        session.close()
 
 @cli.command()
 def list_vehicles():
     session = setup_database()
-    vehicles = Vehicle.get_all(session)
-    for v in vehicles:
-        click.echo(f"ID: {v.id}, Model: {v.model}, Price: ${v.price}, Dealership ID: {v.dealership_id}, Customer ID: {v.customer_id}")
-    session.close()
+    try:
+        click.echo("Fetching vehicles...")
+        vehicles = Vehicle.get_all(session)
+        if not vehicles:
+            click.echo("No vehicles found.")
+        for v in vehicles:
+            click.echo(f"ID: {v.id}, Model: {v.model}, Price: ${v.price}, Dealership ID: {v.dealership_id}, Customer ID: {v.customer_id}")
+    except Exception as e:
+        click.echo(f"Error listing vehicles: {e}")
+    finally:
+        session.close()
 
 @cli.command()
 @click.option('--id', prompt='Vehicle ID', type=int, help='ID of the vehicle to find')
 def find_vehicle(id):
     session = setup_database()
-    vehicle = Vehicle.find_by_id(session, id)
-    if vehicle:
-        click.echo(f"ID: {vehicle.id}, Model: {vehicle.model}, Price: ${vehicle.price}, Dealership ID: {vehicle.dealership_id}, Customer ID: {vehicle.customer_id}")
-    else:
-        click.echo(f"Error: Vehicle with ID {id} not found")
-    session.close()
+    try:
+        vehicle = Vehicle.find_by_id(session, id)
+        if vehicle:
+            click.echo(f"ID: {vehicle.id}, Model: {vehicle.model}, Price: ${vehicle.price}, Dealership ID: {vehicle.dealership_id}, Customer ID: {v.customer_id}")
+        else:
+            click.echo(f"Error: Vehicle with ID {id} not found")
+    except Exception as e:
+        click.echo(f"Error finding vehicle: {e}")
+    finally:
+        session.close()
 
 @cli.command()
 @click.option('--name', prompt='Customer name', help='Name of the customer')
@@ -146,43 +181,63 @@ def create_customer(name, email):
 @click.option('--id', prompt='Customer ID', type=int, help='ID of the customer to delete')
 def delete_customer(id):
     session = setup_database()
-    if Customer.delete(session, id):
-        click.echo(f"Deleted customer with ID {id}")
-    else:
-        click.echo(f"Error: Customer with ID {id} not found")
-    session.close()
+    try:
+        if Customer.delete(session, id):
+            click.echo(f"Deleted customer with ID {id}")
+        else:
+            click.echo(f"Error: Customer with ID {id} not found")
+    except Exception as e:
+        click.echo(f"Error deleting customer: {e}")
+    finally:
+        session.close()
 
 @cli.command()
 def list_customers():
     session = setup_database()
-    customers = Customer.get_all(session)
-    for c in customers:
-        click.echo(f"ID: {c.id}, Name: {c.name}, Email: {c.email}")
-    session.close()
+    try:
+        customers = Customer.get_all(session)
+        if not customers:
+            click.echo("No customers found.")
+        for c in customers:
+            click.echo(f"ID: {c.id}, Name: {c.name}, Email: {c.email}")
+    except Exception as e:
+        click.echo(f"Error listing customers: {e}")
+    finally:
+        session.close()
 
 @cli.command()
 @click.option('--id', prompt='Customer ID', type=int, help='ID of the customer to find')
 def find_customer(id):
     session = setup_database()
-    customer = Customer.find_by_id(session, id)
-    if customer:
-        click.echo(f"ID: {customer.id}, Name: {customer.name}, Email: {customer.email}")
-    else:
-        click.echo(f"Error: Customer with ID {id} not found")
-    session.close()
+    try:
+        customer = Customer.find_by_id(session, id)
+        if customer:
+            click.echo(f"ID: {customer.id}, Name: {customer.name}, Email: {customer.email}")
+        else:
+            click.echo(f"Error: Customer with ID {id} not found")
+    except Exception as e:
+        click.echo(f"Error finding customer: {e}")
+    finally:
+        session.close()
 
 @cli.command()
 @click.option('--id', prompt='Customer ID', type=int, help='ID of the customer')
 def list_customer_vehicles(id):
     session = setup_database()
-    customer = Customer.find_by_id(session, id)
-    if customer:
-        click.echo(f"Vehicles purchased by {customer.name}:")
-        for vehicle in customer.vehicles:
-            click.echo(f"  ID: {vehicle.id}, Model: {vehicle.model}, Price: ${vehicle.price}")
-    else:
-        click.echo(f"Error: Customer with ID {id} not found")
-    session.close()
+    try:
+        customer = Customer.find_by_id(session, id)
+        if customer:
+            click.echo(f"Vehicles purchased by {customer.name}:")
+            if not customer.vehicles:
+                click.echo("  No vehicles found.")
+            for vehicle in customer.vehicles:
+                click.echo(f"  ID: {vehicle.id}, Model: {vehicle.model}, Price: ${vehicle.price}")
+        else:
+            click.echo(f"Error: Customer with ID {id} not found")
+    except Exception as e:
+        click.echo(f"Error listing vehicles: {e}")
+    finally:
+        session.close()
 
 def main():
     while True:
@@ -202,41 +257,45 @@ def main():
         click.echo("13. Find Customer by ID")
         click.echo("14. List Vehicles Purchased by Customer")
         click.echo("15. Exit")
-        choice = click.prompt("Enter your choice (1-15)", type=int)
-        
-        if choice == 1:
-            create_dealership()
-        elif choice == 2:
-            delete_dealership()
-        elif choice == 3:
-            list_dealerships()
-        elif choice == 4:
-            find_dealership()
-        elif choice == 5:
-            list_dealership_vehicles()
-        elif choice == 6:
-            create_vehicle()
-        elif choice == 7:
-            delete_vehicle()
-        elif choice == 8:
-            list_vehicles()
-        elif choice == 9:
-            find_vehicle()
-        elif choice == 10:
-            create_customer()
-        elif choice == 11:
-            delete_customer()
-        elif choice == 12:
-            list_customers()
-        elif choice == 13:
-            find_customer()
-        elif choice == 14:
-            list_customer_vehicles()
-        elif choice == 15:
-            click.echo("Exiting...")
-            break
-        else:
-            click.echo("Invalid choice. Please select 1-15.")
+        try:
+            choice = click.prompt("Enter your choice (1-15)", type=int)
+            click.echo(f"Selected option: {choice}")
+            if choice == 1:
+                create_dealership()
+            elif choice == 2:
+                delete_dealership()
+            elif choice == 3:
+                list_dealerships()
+            elif choice == 4:
+                find_dealership()
+            elif choice == 5:
+                list_dealership_vehicles()
+            elif choice == 6:
+                create_vehicle()
+            elif choice == 7:
+                delete_vehicle()
+            elif choice == 8:
+                list_vehicles()
+            elif choice == 9:
+                find_vehicle()
+            elif choice == 10:
+                create_customer()
+            elif choice == 11:
+                delete_customer()
+            elif choice == 12:
+                list_customers()
+            elif choice == 13:
+                find_customer()
+            elif choice == 14:
+                list_customer_vehicles()
+            elif choice == 15:
+                click.echo("Exiting...")
+                break
+            else:
+                click.echo("Invalid choice. Please select 1-15.")
+        except Exception as e:
+            click.echo(f"Error in menu: {e}")
+        click.echo("")  # Add newline for readability
 
 if __name__ == '__main__':
     main()
