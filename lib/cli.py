@@ -134,6 +134,7 @@ def list_vehicles():
     try:
         click.echo("Fetching vehicles...")
         vehicles = Vehicle.get_all(session)
+        click.echo(f"Found {len(vehicles)} vehicle(s).")
         if not vehicles:
             click.echo("No vehicles found.")
         for v in vehicles:
@@ -150,7 +151,7 @@ def find_vehicle(id):
     try:
         vehicle = Vehicle.find_by_id(session, id)
         if vehicle:
-            click.echo(f"ID: {vehicle.id}, Model: {vehicle.model}, Price: ${vehicle.price}, Dealership ID: {vehicle.dealership_id}, Customer ID: {v.customer_id}")
+            click.echo(f"ID: {vehicle.id}, Model: {vehicle.model}, Price: ${vehicle.price}, Dealership ID: {vehicle.dealership_id}, Customer ID: {vehicle.customer_id}")
         else:
             click.echo(f"Error: Vehicle with ID {id} not found")
     except Exception as e:
