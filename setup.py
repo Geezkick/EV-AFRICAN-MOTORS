@@ -10,7 +10,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'ev-african-motors=lib.cli.cli:main',
+            'ev-african-motors=lib.cli:main',
         ],
     },
 )
