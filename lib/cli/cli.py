@@ -16,10 +16,17 @@ def cli():
 def create_dealership(name, location):
     session = setup_database()
     try:
+        # Validate inputs before attempting to create
+        if not name.strip():
+            raise ValueError("Dealership name cannot be empty")
+        if not location.strip():
+            raise ValueError("Location cannot be empty")
         dealership = Dealership.create(session, name, location)
         click.echo(f"Created dealership: {dealership.name} at {dealership.location}")
     except ValueError as e:
         click.echo(f"Error: {e}")
+    except Exception as e:
+        click.echo(f"Unexpected error: {e}")
     finally:
         session.close()
 
@@ -72,10 +79,17 @@ def list_dealership_vehicles(id):
 def create_vehicle(model, price, dealership_id):
     session = setup_database()
     try:
+        # Validate inputs before attempting to create
+        if not model.strip():
+            raise ValueError("Vehicle model cannot be empty")
+        if price <= 0:
+            raise ValueError("Price must be a positive number")
         vehicle = Vehicle.create(session, model, price, dealership_id)
         click.echo(f"Created vehicle: {vehicle.model}, Price: ${vehicle.price}")
     except ValueError as e:
         click.echo(f"Error: {e}")
+    except Exception as e:
+        click.echo(f"Unexpected error: {e}")
     finally:
         session.close()
 
