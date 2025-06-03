@@ -6,6 +6,8 @@ from lib.models.dealership import Dealership
 from lib.models.vehicle import Vehicle
 from lib.models.customer import Customer
 from lib.helpers import setup_database
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy import func
 
 @click.group()
 def cli():
@@ -18,12 +20,8 @@ def cli():
 def create_dealership(name, location):
     session = setup_database()
     try:
-        if not name.strip():
-            raise ValueError("Dealership name cannot be empty")
-        if not location.strip():
-            raise ValueError("Location cannot be empty")
         dealership = Dealership.create(session, name, location)
-        click.echo(f"Created dealership: {dealership.name} at {dealership.location}")
+        click.echo(f"Created dealership: {dealership.name} at {dealership.location} (ID: {dealership.id})")
     except ValueError as e:
         click.echo(f"Error: {e}")
     except Exception as e:
@@ -96,19 +94,33 @@ def list_dealership_vehicles(id):
 @cli.command()
 @click.option('--model', prompt='Vehicle model', help='Model of the vehicle')
 @click.option('--price', prompt='Price', type=float, help='Price of the vehicle')
-@click.option('--dealership_id', prompt='Dealership ID', type=int, help='ID of the dealership')
-@click.option('--customer_id', prompt='Customer ID (optional, press Enter to skip)', type=int, default=None, help='ID of the customer')
-def create_vehicle(model, price, dealership_id, customer_id):
+@click.option('--dealership', prompt='Dealership name or ID', help='Name or ID of the dealership')
+@click.option('--customer_id', prompt='Customer ID (optional, press Enter to skip)', type=int, default=None, help='ID of the customer', show_default=False, required=False)
+def create_vehicle(model, price, dealership, customer_id):
     session = setup_database()
     try:
-        if not model.strip():
-            raise ValueError("Vehicle model cannot be empty")
-        if price <= 0:
-            raise ValueError("Price must be a positive number")
+        # Resolve dealership ID
+        try:
+            dealership_id = int(dealership)
+            dealership_obj = Dealership.find_by_id(session, dealership_id)
+            if not dealership_obj:
+                raise ValueError(f"Dealership with ID {dealership_id} not found")
+        except ValueError:
+            dealership_obj = session.query(Dealership).filter(func.lower(Dealership.name) == func.lower(dealership)).first()
+            if not dealership_obj:
+                raise ValueError(f"Dealership with name '{dealership}' not found")
+            dealership_id = dealership_obj.id
+        
+        # Create vehicle (Vehicle.create handles model, price, and customer_id validation)
         vehicle = Vehicle.create(session, model, price, dealership_id, customer_id)
-        click.echo(f"Created vehicle: {vehicle.model}, Price: ${vehicle.price}")
+        click.echo(f"Created vehicle: {vehicle.model}, Price: ${vehicle.price}, Dealership: {dealership_obj.name}")
+        if customer_id:
+            customer = Customer.find_by_id(session, customer_id)
+            click.echo(f"Associated with Customer: {customer.name} (ID: {customer_id})")
     except ValueError as e:
         click.echo(f"Error: {e}")
+    except IntegrityError:
+        click.echo(f"Error: Failed to create vehicle due to database constraint")
     except Exception as e:
         click.echo(f"Unexpected error: {e}")
     finally:
@@ -132,13 +144,13 @@ def delete_vehicle(id):
 def list_vehicles():
     session = setup_database()
     try:
-        click.echo("Fetching vehicles...")
         vehicles = Vehicle.get_all(session)
-        click.echo(f"Found {len(vehicles)} vehicle(s).")
         if not vehicles:
             click.echo("No vehicles found.")
         for v in vehicles:
-            click.echo(f"ID: {v.id}, Model: {v.model}, Price: ${v.price}, Dealership ID: {v.dealership_id}, Customer ID: {v.customer_id}")
+            dealership = Dealership.find_by_id(session, v.dealership_id)
+            customer = Customer.find_by_id(session, v.customer_id) if v.customer_id else None
+            click.echo(f"ID: {v.id}, Model: {v.model}, Price: ${v.price}, Dealership: {dealership.name if dealership else 'Unknown'}, Customer: {customer.name if customer else 'None'} (ID: {v.customer_id})")
     except Exception as e:
         click.echo(f"Error listing vehicles: {e}")
     finally:
@@ -151,7 +163,9 @@ def find_vehicle(id):
     try:
         vehicle = Vehicle.find_by_id(session, id)
         if vehicle:
-            click.echo(f"ID: {vehicle.id}, Model: {vehicle.model}, Price: ${vehicle.price}, Dealership ID: {vehicle.dealership_id}, Customer ID: {vehicle.customer_id}")
+            dealership = Dealership.find_by_id(session, vehicle.dealership_id)
+            customer = Customer.find_by_id(session, vehicle.customer_id) if vehicle.customer_id else None
+            click.echo(f"ID: {vehicle.id}, Model: {vehicle.model}, Price: ${vehicle.price}, Dealership: {dealership.name if dealership else 'Unknown'}, Customer: {customer.name if customer else 'None'} (ID: {vehicle.customer_id})")
         else:
             click.echo(f"Error: Vehicle with ID {id} not found")
     except Exception as e:
@@ -165,12 +179,8 @@ def find_vehicle(id):
 def create_customer(name, email):
     session = setup_database()
     try:
-        if not name.strip():
-            raise ValueError("Customer name cannot be empty")
-        if not email.strip() or '@' not in email:
-            raise ValueError("Email must be a valid non-empty string")
         customer = Customer.create(session, name, email)
-        click.echo(f"Created customer: {customer.name}, Email: {customer.email}")
+        click.echo(f"Created customer: {customer.name}, Email: {customer.email}, ID: {customer.id}")
     except ValueError as e:
         click.echo(f"Error: {e}")
     except Exception as e:
@@ -294,6 +304,8 @@ def main():
                 break
             else:
                 click.echo("Invalid choice. Please select 1-15.")
+        except ValueError:
+            click.echo("Error: Please enter a valid number between 1 and 15")
         except Exception as e:
             click.echo(f"Error in menu: {e}")
         click.echo("")  # Add newline for readability

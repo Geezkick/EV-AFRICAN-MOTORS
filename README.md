@@ -42,9 +42,4 @@ lib/db/database.db: SQLite database file.
 
 Requirements
 
-Python 3.9+
-Pipenv
-Dependencies: click, sqlalchemy
-
-License
-MIT License
+Python

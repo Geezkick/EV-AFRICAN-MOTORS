@@ -1,6 +1,8 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey
+# lib/models/vehicle.py
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from . import Base, Session
+from datetime import datetime
 
 class Vehicle(Base):
     __tablename__ = 'vehicles'
@@ -12,6 +14,7 @@ class Vehicle(Base):
     dealership = relationship("Dealership", back_populates="vehicles")
     customer_id = Column(Integer, ForeignKey('customers.id'), nullable=True)
     customer = relationship("Customer", back_populates="vehicles")
+    payments = relationship("Payment", back_populates="vehicle", cascade="all, delete-orphan")
 
     @property
     def model(self):
@@ -64,3 +67,42 @@ class Vehicle(Base):
     @classmethod
     def find_by_id(cls, session, id):
         return session.query(cls).get(id)
+
+    def add_payment(self, session, amount, customer_id, payment_date=None):
+        """Add a payment for the vehicle."""
+        try:
+            if not session.query(Customer).get(customer_id):
+                raise ValueError("Invalid customer ID")
+            if not isinstance(amount, (int, float)) or amount <= 0:
+                raise ValueError("Payment amount must be a positive number")
+            if self.customer_id and self.customer_id != customer_id:
+                raise ValueError("Payment customer must match vehicle customer")
+            
+            payment = Payment(
+                vehicle_id=self.id,
+                customer_id=customer_id,
+                amount=amount,
+                payment_date=payment_date or datetime.now(),
+                status="completed"
+            )
+            session.add(payment)
+            session.commit()
+            return payment
+        except:
+            session.rollback()
+            raise ValueError("Failed to add payment: Invalid data")
+
+    def get_payments(self, session):
+        """Retrieve all payments for the vehicle."""
+        return session.query(Payment).filter(Payment.vehicle_id == self.id).all()
+
+    def get_total_payments(self, session):
+        """Calculate total paid amount for the vehicle."""
+        from sqlalchemy import func
+        total = session.query(func.sum(Payment.amount)).filter(Payment.vehicle_id == self.id).scalar()
+        return total or 0.0
+
+    def get_remaining_balance(self, session):
+        """Calculate remaining balance for the vehicle."""
+        total_paid = self.get_total_payments(session)
+        return self.price - total_paid
