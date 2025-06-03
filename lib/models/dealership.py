@@ -1,6 +1,7 @@
+# lib/models/dealership.py
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
-from . import Base, Session
+from .base import Base, Session
 
 class Dealership(Base):
     __tablename__ = 'dealerships'

@@ -1,6 +1,7 @@
+# lib/models/customer.py
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
-from . import Base, Session
+from .base import Base, Session
 
 class Customer(Base):
     __tablename__ = 'customers'
@@ -9,6 +10,7 @@ class Customer(Base):
     name = Column(String, nullable=False)
     email = Column(String, nullable=False)
     vehicles = relationship("Vehicle", back_populates="customer")
+    payments = relationship("Payment", back_populates="customer")
 
     @property
     def name(self):

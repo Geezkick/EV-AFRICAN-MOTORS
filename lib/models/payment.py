@@ -1,7 +1,7 @@
 # lib/models/payment.py
 from sqlalchemy import Column, Integer, Float, ForeignKey, DateTime, String
 from sqlalchemy.orm import relationship
-from . import Base
+from .base import Base
 from datetime import datetime
 
 class Payment(Base):
@@ -12,7 +12,7 @@ class Payment(Base):
     customer_id = Column(Integer, ForeignKey('customers.id'), nullable=False)
     amount = Column(Float, nullable=False)
     payment_date = Column(DateTime, nullable=False, default=datetime.now)
-    status = Column(String, nullable=False, default="completed")  # e.g., completed, pending, failed
+    status = Column(String, nullable=False, default="completed")
     vehicle = relationship("Vehicle", back_populates="payments")
     customer = relationship("Customer", back_populates="payments")
 

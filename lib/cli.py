@@ -1,3 +1,4 @@
+# lib/cli.py
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -5,9 +6,11 @@ import click
 from lib.models.dealership import Dealership
 from lib.models.vehicle import Vehicle
 from lib.models.customer import Customer
+from lib.models.payment import Payment
 from lib.helpers import setup_database
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func
+from datetime import datetime
 
 @click.group()
 def cli():
@@ -99,7 +102,6 @@ def list_dealership_vehicles(id):
 def create_vehicle(model, price, dealership, customer_id):
     session = setup_database()
     try:
-        # Resolve dealership ID
         try:
             dealership_id = int(dealership)
             dealership_obj = Dealership.find_by_id(session, dealership_id)
@@ -111,7 +113,6 @@ def create_vehicle(model, price, dealership, customer_id):
                 raise ValueError(f"Dealership with name '{dealership}' not found")
             dealership_id = dealership_obj.id
         
-        # Create vehicle (Vehicle.create handles model, price, and customer_id validation)
         vehicle = Vehicle.create(session, model, price, dealership_id, customer_id)
         click.echo(f"Created vehicle: {vehicle.model}, Price: ${vehicle.price}, Dealership: {dealership_obj.name}")
         if customer_id:
@@ -250,6 +251,49 @@ def list_customer_vehicles(id):
     finally:
         session.close()
 
+@cli.command()
+@click.option('--vehicle_id', prompt='Vehicle ID', type=int, help='ID of the vehicle')
+@click.option('--customer_id', prompt='Customer ID', type=int, help='ID of the customer')
+@click.option('--amount', prompt='Payment amount', type=float, help='Amount of the payment')
+def create_payment(vehicle_id, customer_id, amount):
+    session = setup_database()
+    try:
+        vehicle = Vehicle.find_by_id(session, vehicle_id)
+        if not vehicle:
+            raise ValueError(f"Vehicle with ID {vehicle_id} not found")
+        payment = vehicle.add_payment(session, amount, customer_id)
+        click.echo(f"Created payment: Amount: ${payment.amount}, Vehicle ID: {payment.vehicle_id}, Customer ID: {payment.customer_id}, Date: {payment.payment_date}")
+    except ValueError as e:
+        click.echo(f"Error: {e}")
+    except Exception as e:
+        click.echo(f"Unexpected error: {e}")
+    finally:
+        session.close()
+
+@cli.command()
+@click.option('--vehicle_id', prompt='Vehicle ID', type=int, help='ID of the vehicle')
+def list_vehicle_payments(vehicle_id):
+    session = setup_database()
+    try:
+        vehicle = Vehicle.find_by_id(session, vehicle_id)
+        if not vehicle:
+            raise ValueError(f"Vehicle with ID {vehicle_id} not found")
+        payments = vehicle.get_payments(session)
+        total_paid = vehicle.get_total_payments(session)
+        balance = vehicle.get_remaining_balance(session)
+        click.echo(f"Payments for Vehicle ID {vehicle_id} (Model: {vehicle.model}):")
+        if not payments:
+            click.echo("  No payments found.")
+        for payment in payments:
+            click.echo(f"  Payment ID: {payment.id}, Amount: ${payment.amount}, Customer ID: {payment.customer_id}, Date: {payment.payment_date}, Status: {payment.status}")
+        click.echo(f"Total Paid: ${total_paid:.2f}, Remaining Balance: ${balance:.2f}")
+    except ValueError as e:
+        click.echo(f"Error: {e}")
+    except Exception as e:
+        click.echo(f"Error listing payments: {e}")
+    finally:
+        session.close()
+
 def main():
     while True:
         click.echo("\nEV African Motors Menu:")
@@ -267,9 +311,11 @@ def main():
         click.echo("12. List Customers")
         click.echo("13. Find Customer by ID")
         click.echo("14. List Vehicles Purchased by Customer")
-        click.echo("15. Exit")
+        click.echo("15. Create Payment")
+        click.echo("16. List Payments for Vehicle")
+        click.echo("17. Exit")
         try:
-            choice = click.prompt("Enter your choice (1-15)", type=int)
+            choice = click.prompt("Enter your choice (1-17)", type=int)
             click.echo(f"Selected option: {choice}")
             if choice == 1:
                 create_dealership()
@@ -300,15 +346,19 @@ def main():
             elif choice == 14:
                 list_customer_vehicles()
             elif choice == 15:
+                create_payment()
+            elif choice == 16:
+                list_vehicle_payments()
+            elif choice == 17:
                 click.echo("Exiting...")
                 break
             else:
-                click.echo("Invalid choice. Please select 1-15.")
+                click.echo("Invalid choice. Please select 1-17.")
         except ValueError:
-            click.echo("Error: Please enter a valid number between 1 and 15")
+            click.echo("Error: Please enter a valid number between 1 and 17")
         except Exception as e:
             click.echo(f"Error in menu: {e}")
-        click.echo("")  # Add newline for readability
+        click.echo("")
 
 if __name__ == '__main__':
     main()

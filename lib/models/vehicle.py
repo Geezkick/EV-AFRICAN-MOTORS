@@ -1,7 +1,7 @@
 # lib/models/vehicle.py
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
-from . import Base, Session
+from .base import Base, Session
 from datetime import datetime
 
 class Vehicle(Base):
@@ -69,7 +69,6 @@ class Vehicle(Base):
         return session.query(cls).get(id)
 
     def add_payment(self, session, amount, customer_id, payment_date=None):
-        """Add a payment for the vehicle."""
         try:
             if not session.query(Customer).get(customer_id):
                 raise ValueError("Invalid customer ID")
@@ -77,7 +76,7 @@ class Vehicle(Base):
                 raise ValueError("Payment amount must be a positive number")
             if self.customer_id and self.customer_id != customer_id:
                 raise ValueError("Payment customer must match vehicle customer")
-            
+            from .payment import Payment
             payment = Payment(
                 vehicle_id=self.id,
                 customer_id=customer_id,
@@ -93,16 +92,15 @@ class Vehicle(Base):
             raise ValueError("Failed to add payment: Invalid data")
 
     def get_payments(self, session):
-        """Retrieve all payments for the vehicle."""
+        from .payment import Payment
         return session.query(Payment).filter(Payment.vehicle_id == self.id).all()
 
     def get_total_payments(self, session):
-        """Calculate total paid amount for the vehicle."""
         from sqlalchemy import func
+        from .payment import Payment
         total = session.query(func.sum(Payment.amount)).filter(Payment.vehicle_id == self.id).scalar()
         return total or 0.0
 
     def get_remaining_balance(self, session):
-        """Calculate remaining balance for the vehicle."""
         total_paid = self.get_total_payments(session)
         return self.price - total_paid
